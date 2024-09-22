@@ -9,15 +9,20 @@ const App: React.FC = () => {
   const [rounds, setRounds] = useState(1);
   const [roundResetTime, setRoundResetTime] = useState(10);
   const [showModal, setShowModal] = useState(false);
-  const [currentSetting, setCurrentSetting] = useState<'work' | 'rest' | 'exercises' | 'rounds' | 'roundReset'>();
+  const [currentSetting, setCurrentSetting] = useState<
+    'work' | 'rest' | 'exercises' | 'rounds' | 'roundReset'
+  >();
 
   const [timer, setTimer] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
-  const [currentPhase, setCurrentPhase] = useState<'work' | 'rest' | 'roundReset'>('work');
+  const [currentPhase, setCurrentPhase] = useState<
+    'work' | 'rest' | 'roundReset'
+  >('work');
+  const [currentExercise, setCurrentExercise] = useState(1);
   const [currentRound, setCurrentRound] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
 
-  const tickSound = new Audio('/beep.mp3'); // Path to your tick sound
+  const tickSound = new Audio('/beep.mp3');
 
   const totalTime = useMemo(() => {
     if (currentPhase === 'work') return workTime;
@@ -25,7 +30,9 @@ const App: React.FC = () => {
     return roundResetTime;
   }, [currentPhase, workTime, restTime, roundResetTime]);
 
-  const handleOpenModal = (setting: 'work' | 'rest' | 'exercises' | 'rounds' | 'roundReset') => {
+  const handleOpenModal = (
+    setting: 'work' | 'rest' | 'exercises' | 'rounds' | 'roundReset'
+  ) => {
     setCurrentSetting(setting);
     setShowModal(true);
   };
@@ -33,8 +40,10 @@ const App: React.FC = () => {
   const displayTime = (secs: number) => {
     const minutes = Math.floor(secs / 60);
     const seconds = secs % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  }
+    return `${minutes.toString().padStart(2, '0')}:${seconds
+      .toString()
+      .padStart(2, '0')}`;
+  };
 
   const initialValue = useMemo(() => {
     switch (currentSetting) {
@@ -53,52 +62,90 @@ const App: React.FC = () => {
     }
   }, [currentSetting, workTime, restTime, exercises, rounds, roundResetTime]);
 
-  // Timer logic
   useEffect(() => {
     let interval = null;
-    
+
     if (isRunning && !isPaused && timer > 0) {
       interval = setInterval(() => {
-        // Play sound on every tick
         tickSound.play().catch((error) => {
-          console.error("Error playing sound: ", error);
+          console.error('Error playing sound: ', error);
         });
         setTimer((prev) => prev - 1);
       }, 1000);
     } else if (timer === 0 && isRunning && !isPaused) {
-      // Handle the end of the current phase
       if (currentPhase === 'work') {
-        // Move to the rest phase after work
-        setCurrentPhase('rest');
-        setTimer(restTime);
-      } else if (currentPhase === 'rest') {
-        // If rounds are remaining, go to the round reset phase
-        if (currentRound < rounds) {
+        if (currentExercise < exercises) {
+          setCurrentPhase('rest');
+          setTimer(restTime);
+        } else {
           setCurrentPhase('roundReset');
           setTimer(roundResetTime);
+        }
+      } else if (currentPhase === 'rest') {
+        setCurrentPhase('work');
+        setCurrentExercise((prev) => prev + 1);
+        setTimer(workTime);
+      } else if (currentPhase === 'roundReset') {
+        if (currentRound < rounds) {
+          setCurrentPhase('work');
+          setCurrentExercise(1);
+          setCurrentRound((prev) => prev + 1);
+          setTimer(workTime);
         } else {
-          // All rounds completed, stop the timer
           setIsRunning(false);
         }
-      } else if (currentPhase === 'roundReset') {
-        // After round reset, return to work and increment the round count
-        setCurrentPhase('work');
-        setCurrentRound((prevRound) => prevRound + 1);
-        setTimer(workTime);
       }
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, timer, currentPhase, currentRound, workTime, restTime, rounds, isPaused, roundResetTime, tickSound]);
+  }, [
+    isRunning,
+    timer,
+    currentPhase,
+    currentRound,
+    workTime,
+    restTime,
+    rounds,
+    isPaused,
+    roundResetTime,
+    tickSound,
+    currentExercise,
+    exercises,
+  ]);
+
+  const saveSessionToLocalStorage = () => {
+    const sessionData = {
+      workTime,
+      restTime,
+      exercises,
+      rounds,
+      roundResetTime,
+      completedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem('exerciseSession', JSON.stringify(sessionData));
+  };
+
+  useEffect(() => {
+    if (
+      isRunning &&
+      timer === 0 &&
+      currentPhase === 'roundReset' &&
+      currentRound === rounds
+    ) {
+      saveSessionToLocalStorage();
+      setIsRunning(false);
+    }
+  }, [isRunning, timer, currentPhase, currentRound, rounds]);
 
   const handleStart = () => {
     setIsRunning(true);
     setCurrentPhase('work');
     setCurrentRound(1);
     setTimer(workTime);
-  }
+  };
 
   const handlePause = () => {
     setIsPaused(!isPaused);
@@ -108,32 +155,50 @@ const App: React.FC = () => {
     setIsRunning(false);
     setIsPaused(false);
     setCurrentPhase('work');
+    setCurrentExercise(1);
     setCurrentRound(1);
     setTimer(workTime);
   };
 
-    // Progress calculation
-    const progress = (timer / totalTime) * 100;
-    const strokeDashoffset = 283 - (progress / 100) * 283; // 283 is the circumference of the circle
-  
+  const progress = (timer / totalTime) * 100;
+  const strokeDashoffset = 283 - (progress / 100) * 283;
 
   return (
     <Container>
       <TimerSection>
-        <PhaseDisplay>{currentPhase === 'work' ? 'Work' : currentPhase === 'rest' ? 'Rest' : 'Round Reset'}</PhaseDisplay>
-        <RoundDisplay>Round: {currentRound}/{rounds}</RoundDisplay>
+        <PhaseDisplay>
+          {currentPhase === 'work'
+            ? 'Work'
+            : currentPhase === 'rest'
+            ? 'Rest'
+            : 'Round Reset'}
+        </PhaseDisplay>
+        <RoundDisplay>
+          Round: {currentRound}/{rounds}, Exercise: {currentExercise}/
+          {exercises}
+        </RoundDisplay>
         <CircularTimer>
           <svg width="200" height="200" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" 
-            fill="none" 
-            stroke="#f2f2f2ee" 
-            strokeWidth="10" />
             <circle
               cx="50"
               cy="50"
               r="45"
               fill="none"
-              stroke={currentPhase === 'work' ? '#85dfa7' : currentPhase === 'rest' ? '#d34659' : '#ebcf76'}
+              stroke="#f2f2f2ee"
+              strokeWidth="10"
+            />
+            <circle
+              cx="50"
+              cy="50"
+              r="45"
+              fill="none"
+              stroke={
+                currentPhase === 'work'
+                  ? '#85dfa7'
+                  : currentPhase === 'rest'
+                  ? '#d34659'
+                  : '#ebcf76'
+              }
               strokeWidth="10"
               strokeDasharray="283"
               strokeDashoffset={strokeDashoffset}
@@ -145,35 +210,56 @@ const App: React.FC = () => {
         {/* Display "Pause" and "Reset" buttons when the timer is running */}
         {isRunning ? (
           <ButtonGroup>
-            <PauseButton onClick={handlePause}>{isPaused ? 'Resume' : 'Pause'}</PauseButton>
+            <PauseButton onClick={handlePause}>
+              {isPaused ? 'Resume' : 'Pause'}
+            </PauseButton>
             <ResetButton onClick={handleReset}>Reset</ResetButton>
           </ButtonGroup>
         ) : (
           <PlayButton onClick={handleStart}>Start</PlayButton>
         )}
       </TimerSection>
-      <SettingsSection>
-        <SettingItem onClick={() => handleOpenModal('work')} bgColor="#EAFBF1">
-          <SettingText>Work</SettingText>
-          <SettingValue color="#85dfa7">{displayTime(workTime)}</SettingValue>
-        </SettingItem>
-        <SettingItem onClick={() => handleOpenModal('rest')} bgColor="#FCEAEA">
-          <SettingText>Rest</SettingText>
-          <SettingValue color="#d34659">{displayTime(restTime)}</SettingValue>
-        </SettingItem>
-        <SettingItem onClick={() => handleOpenModal('exercises')} bgColor="#F0F0F0">
-          <SettingText>Exercises</SettingText>
-          <SettingValue color="#b1b1b1">{exercises}</SettingValue>
-        </SettingItem>
-        <SettingItem onClick={() => handleOpenModal('rounds')} bgColor="#E8E9FC">
-          <SettingText>Rounds</SettingText>
-          <SettingValue color="#6b7ce5">{rounds}x</SettingValue>
-        </SettingItem>
-        <SettingItem onClick={() => handleOpenModal('roundReset')} bgColor="#FFF7E5">
-          <SettingText>Round Reset</SettingText>
-          <SettingValue color="#ebcf76">{displayTime(roundResetTime)}</SettingValue>
-        </SettingItem>
-      </SettingsSection>
+      {!isRunning && (
+        <SettingsSection>
+          <SettingItem
+            onClick={() => handleOpenModal('work')}
+            bgColor="#EAFBF1"
+          >
+            <SettingText>Work</SettingText>
+            <SettingValue color="#85dfa7">{displayTime(workTime)}</SettingValue>
+          </SettingItem>
+          <SettingItem
+            onClick={() => handleOpenModal('rest')}
+            bgColor="#FCEAEA"
+          >
+            <SettingText>Rest</SettingText>
+            <SettingValue color="#d34659">{displayTime(restTime)}</SettingValue>
+          </SettingItem>
+          <SettingItem
+            onClick={() => handleOpenModal('exercises')}
+            bgColor="#F0F0F0"
+          >
+            <SettingText>Exercises</SettingText>
+            <SettingValue color="#b1b1b1">{exercises}</SettingValue>
+          </SettingItem>
+          <SettingItem
+            onClick={() => handleOpenModal('rounds')}
+            bgColor="#E8E9FC"
+          >
+            <SettingText>Rounds</SettingText>
+            <SettingValue color="#6b7ce5">{rounds}x</SettingValue>
+          </SettingItem>
+          <SettingItem
+            onClick={() => handleOpenModal('roundReset')}
+            bgColor="#FFF7E5"
+          >
+            <SettingText>Round Reset</SettingText>
+            <SettingValue color="#ebcf76">
+              {displayTime(roundResetTime)}
+            </SettingValue>
+          </SettingItem>
+        </SettingsSection>
+      )}
 
       {showModal && (
         <SettingsModal
@@ -225,10 +311,9 @@ const CircularTimer = styled.div`
     position: absolute;
     top: 0;
     left: 0;
-    transform: rotate(-90deg); // Rotate circle for top-start
+    transform: rotate(-90deg);
   }
 `;
-
 
 const TimerSection = styled.div`
   display: flex;
@@ -326,7 +411,6 @@ const SettingItem = styled.div<{ bgColor: string }>`
   height: 100px;
   background: ${(props) => props.bgColor};
 `;
-
 
 const SettingText = styled.div`
   font-size: 20px;
