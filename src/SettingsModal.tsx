@@ -60,6 +60,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ setting, onClose, onSave,
                   min="0"
                   value={Math.floor(value / 60)}
                   onChange={handleMinutesChange}
+                  autoComplete="off"
+                  autoCorrect="off"
                 />
               </div>
               <div>
@@ -70,6 +72,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ setting, onClose, onSave,
                   max="59"
                   value={value % 60}
                   onChange={handleSecondsChange}
+                  autoComplete="off"
+                  autoCorrect="off"
                 />
               </div>
             </>
@@ -82,6 +86,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ setting, onClose, onSave,
                 min="0"
                 value={value}
                 onChange={handleAmountChange}
+                autoComplete="off"
+                autoCorrect="off"
               />
             </div>
           )}
