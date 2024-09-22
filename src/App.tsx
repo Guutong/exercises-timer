@@ -26,6 +26,7 @@ const App: React.FC = () => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   const tickSound = new Audio('/exercises-timer/beep.mp3');
+  const countdownSound = new Audio('/exercises-timer/321.m4a');
 
   const totalTime = useMemo(() => {
     if (currentPhase === 'work') return workTime;
@@ -70,9 +71,8 @@ const App: React.FC = () => {
 
     if (isRunning && !isPaused && timer > 0) {
       interval = setInterval(() => {
-        tickSound.play().catch((error) => {
-          console.error('Error playing sound: ', error);
-        });
+        if (timer === 4) countdownSound.play();
+        if (timer === 1) tickSound.play();
         setTimer((prev) => prev - 1);
       }, 1000);
     } else if (timer === 0 && isRunning && !isPaused) {
