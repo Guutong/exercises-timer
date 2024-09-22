@@ -181,23 +181,6 @@ const TotalTime = styled.div`
   color: #d34659;
 `;
 
-const LoadButton = styled.button`
-  width: 100%;
-  padding: 10px 0;
-  background-color: #f5f5f5;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 15px;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #e5e5e5;
-  }
-`;
-
 const DetailsRow = styled.div`
   display: flex;
   justify-content: space-between;
