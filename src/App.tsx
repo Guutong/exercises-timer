@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import SettingsModal from './SettingsModal';
+import WorkoutHistoryModal from './WorkoutHistoryModal';
 
 const App: React.FC = () => {
   const [workTime, setWorkTime] = useState(10);
@@ -22,7 +23,9 @@ const App: React.FC = () => {
   const [currentRound, setCurrentRound] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
 
-  const tickSound = new Audio('/beep.mp3');
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+
+  const tickSound = new Audio('/exercises-timer/beep.mp3');
 
   const totalTime = useMemo(() => {
     if (currentPhase === 'work') return workTime;
@@ -115,7 +118,7 @@ const App: React.FC = () => {
     exercises,
   ]);
 
-  const saveSessionToLocalStorage = () => {
+  const saveSessionToHistory = () => {
     const sessionData = {
       workTime,
       restTime,
@@ -124,18 +127,15 @@ const App: React.FC = () => {
       roundResetTime,
       completedAt: new Date().toISOString(),
     };
-
-    localStorage.setItem('exerciseSession', JSON.stringify(sessionData));
+    const storedHistory = localStorage.getItem('workoutHistory');
+    const history = storedHistory ? JSON.parse(storedHistory) : [];
+    history.push(sessionData);
+    localStorage.setItem('workoutHistory', JSON.stringify(history));
   };
-
+  
   useEffect(() => {
-    if (
-      isRunning &&
-      timer === 0 &&
-      currentPhase === 'roundReset' &&
-      currentRound === rounds
-    ) {
-      saveSessionToLocalStorage();
+    if (isRunning && timer === 0 && currentPhase === 'roundReset' && currentRound === rounds) {
+      saveSessionToHistory(); // Save the session to history
       setIsRunning(false);
     }
   }, [isRunning, timer, currentPhase, currentRound, rounds]);
@@ -258,6 +258,12 @@ const App: React.FC = () => {
               {displayTime(roundResetTime)}
             </SettingValue>
           </SettingItem>
+          <SettingItem
+            onClick={() => setShowHistoryModal(true)}
+            bgColor="#F0F0F0"
+          >
+            <SettingText>History</SettingText>
+          </SettingItem>
         </SettingsSection>
       )}
 
@@ -286,6 +292,13 @@ const App: React.FC = () => {
             }
             setShowModal(false);
           }}
+        />
+      )}
+
+      {showHistoryModal && (
+        <WorkoutHistoryModal
+          isOpen={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
         />
       )}
     </Container>
@@ -321,6 +334,7 @@ const TimerSection = styled.div`
   align-items: center;
   justify-content: center;
   flex: 1;
+  margin-bottom: 20px;
 `;
 
 const PhaseDisplay = styled.div`
